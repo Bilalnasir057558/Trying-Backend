@@ -1,0 +1,17 @@
+{
+  "name": "backend-js",
+  "version": "1.0.0",
+  "description": "JS backend practice",
+  "keywords": [
+    "backend",
+    "JS",
+    "nodejs"
+  ],
+  "license": "ISC",
+  "author": "Muhammad Bilal Nasir",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
