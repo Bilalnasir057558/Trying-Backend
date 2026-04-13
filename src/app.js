@@ -18,4 +18,13 @@ app.use(express.static('public'));
 
 app.use(cookieParser());
 
+// Global error middleware 
+app.use((err, req, res, next) => {
+    res.status(err.statusCode || 500).json({
+        success: false,
+        message: err.message,
+        errors: err.errors || []
+    });
+})
+
 export { app };
