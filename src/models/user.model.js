@@ -6,7 +6,8 @@ const userSchema = new Schema({
         required: true,
         unique: true,
         lowercase: true,
-        trim: true
+        trim: true,
+        index: true,
     },
     email: {
         type: String,
@@ -18,7 +19,8 @@ const userSchema = new Schema({
     fullName: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        index: true
     },
     avatar: {
         type: String, // url
@@ -26,11 +28,10 @@ const userSchema = new Schema({
     },
     coverImage: {
         type: String, // url
-        required: true,
     },
     password: {
         type: String,
-        required: true
+        required: [true, 'Password is required']
     },
     watchHistory: [
         {
