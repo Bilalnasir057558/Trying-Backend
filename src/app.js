@@ -27,4 +27,10 @@ app.use((err, req, res, next) => {
     });
 })
 
+// Route import
+import userRouter from "./routes/user.routes.js"
+
+// Route declaration
+app.use("/api/v1/users", userRouter);
+
 export { app };
