@@ -4,8 +4,10 @@ import fs from "fs"
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+console.log("Cloudinary config loaded:", !!process.env.CLOUDINARY_CLOUD_NAME);
 
 const uploadOnCloudinary = async (localFilePath) => {
     try {
@@ -14,10 +16,11 @@ const uploadOnCloudinary = async (localFilePath) => {
             resource_type: "auto"
         });
 
-        fs.unlinkSync(localFilePath);
+        // fs.unlinkSync(localFilePath);
         return response;
 
     } catch (error) {
+        console.log("Cloudinary upload error:", error);
         fs.unlinkSync(localFilePath);
         return null;
     }
