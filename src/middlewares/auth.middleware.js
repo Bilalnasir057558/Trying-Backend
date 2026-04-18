@@ -17,14 +17,12 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
       req.cookies?.accessToken ||
       req.header("Authorization").replace("Bearer ", "");
 
-     console.log(token);
     if(!token) {
         throw new ApiError(400, "Unauthorized request");
     }
 
     // verifying token
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    console.log(decoded);
 
     if (!decoded) {
       throw new ApiError(401, "Unauthorized");
