@@ -110,6 +110,7 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   // get login credentials for the user
   const { username, email, password } = req.body;
+  console.log(username, email, password);
 
   // validation
   if (!username?.trim() || !email?.trim() || !password?.trim()) {
@@ -121,6 +122,7 @@ const loginUser = asyncHandler(async (req, res) => {
     $or: [{ username }, { email }],
   });
 
+  // console.log(user);
   // confirm user
   if (!user) {
     throw new ApiError(404, "User does not exist.");
@@ -128,6 +130,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // match the password
   const isPasswordValid = await user.isPasswordCorrect(password);
+  // console.log(isPasswordValid);
 
   // check if password matches or not
   if (!isPasswordValid) {
@@ -141,8 +144,8 @@ const loginUser = asyncHandler(async (req, res) => {
   const validUser = await User.findById(user._id).select(
     "-password -refreshToken"
   )
-
-  if(validUser) {
+  
+  if(!validUser) {
     throw new ApiError(500, "Something went wrong while signing in the user.");
   }
 
@@ -177,7 +180,7 @@ const logoutUser = asyncHandler(async (req, res) => {
       $set: { refreshToken: undefined }
     },
     {
-      new: true // gives updated user
+      returnDocument: "after" // gives updated document with no refresh token
     }
   )
 
