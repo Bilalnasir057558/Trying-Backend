@@ -214,41 +214,45 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized request");
   }
 
-  // verify refresh token (signature match)
-  const decoded = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+  try {
+    // verify refresh token (signature match)
+    const decoded = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+    
+    if(!decoded) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
   
-  if(!decoded) {
-    throw new ApiError(401, "Invalid refresh token");
+    // get user
+    const user = await User.findById(decoded._id).select("-password");
+  
+    if(!user){
+      throw new ApiError(401, "Invalid refresh token");
+    }
+  
+    // compare refresh tokens
+    if(incomingRefreshToken !== user.refreshToken) {
+      throw new ApiError(401, "Refresh token expired or used");
+    }
+  
+    // if tokens match => generate new tokens
+    const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id);
+  
+    const options = {
+      httpOnly: true,
+      secure: true
+    }
+  
+    return res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, {
+      accessToken, refreshToken
+    },
+    "Access token refreshed successfully"
+    ));
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token");
   }
-
-  // get user
-  const user = await User.findById(decoded._id).select("-password");
-
-  if(!user){
-    throw new ApiError(401, "Invalid refresh token");
-  }
-
-  // compare refresh tokens
-  if(incomingRefreshToken !== user.refreshToken) {
-    throw new ApiError(401, "Refresh token expired or used");
-  }
-
-  // if tokens match => generate new tokens
-  const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id);
-
-  const options = {
-    httpOnly: true,
-    secure: true
-  }
-
-  return res.status(200)
-  .cookie("accessToken", accessToken, options)
-  .cookie("refreshToken", refreshToken, options)
-  .json(new ApiResponse(200, {
-    accessToken, refreshToken
-  },
-  "Access token refreshed successfully"
-  ));
 });
 
 export { registerUser, loginUser,  logoutUser, refreshAccessToken};
