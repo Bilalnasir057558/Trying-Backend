@@ -289,10 +289,110 @@ const updatePassword = asyncHandler(async (req, res) => {
 
 })
 
+const updateOtherFields = asyncHandler(async (req, res) => {
+  
+  // get fields to update from the user
+  const {fullName, email} = req.body;
+
+  // have access to req.user b/c user is logged in
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName,
+        email
+      }
+    },
+    {
+      returnDocument: "after"
+    }
+  ).select("-password -refreshToken");
+
+  if(!user) {
+    throw new ApiError(400, 'Unauthorized access.');
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, user, "Fields updated successfully.")
+  );
+})
+
+const updateAvatar = asyncHandler(async (req, res) => {
+
+  // we have access to req.file b/c whenever we upload, multer middleware uploads in it public/temp and attach it to req
+  const avatarLocalPath = req.file?.path;
+
+  if(!avatarLocalPath) {
+    throw new ApiError(400, 'Avatar file is missing.');
+  }
+
+  // if avatar exists, uploads it on cloudinary
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  if(!avatar) {
+    throw new ApiError(400, 'Avatar file is required.');
+  }
+
+  // if upload successfully, update the avatar in the db
+  await User.findByIdAndUpdate(
+    req?.user?._id,
+    {
+      $set: { avatar: avatar.url }
+    }, {returnDocument: "after"}
+  );
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, {}, 'Avatar updated successfully.')
+  );
+});
+
+const updateCoverImage = asyncHandler(async (req, res) => {
+  const coverImageLocalPath = req?.file?.path;
+
+  if(!coverImageLocalPath) {
+    throw new ApiError(400, 'Cover image is missing.');
+  }
+
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+  if(!coverImage) {
+    throw new ApiError(400, 'Cover image is required.');
+  }
+
+  await User.findByIdAndUpdate(
+    req?.user?._id,
+    {
+      $set: { coverImage: coverImage.url }
+    }, {returnDocument: "after"}
+  );
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, {}, 'Cover image updated successfully.')
+  );
+})
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, req.user, 'Current user fetched successfully.')
+  );
+})
+
 export { 
   registerUser, 
   loginUser,  
   logoutUser, 
   refreshAccessToken, 
-  updatePassword
+  updatePassword,
+  updateOtherFields,
+  updateAvatar,
+  updateCoverImage,
+  getCurrentUser
 };
