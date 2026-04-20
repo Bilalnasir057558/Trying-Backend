@@ -19,7 +19,6 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
     user.refreshToken = refreshToken; // save generated token in the db
     await user.save( {validateBeforeSave: false} ) // tell mongoose to bypass schema validation for other fields such as password is required on save
                                                     //  b/c we are updating only the refresh token
-
     return {
         accessToken,
         refreshToken
@@ -111,7 +110,6 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   // get login credentials for the user
   const { username, email, password } = req.body;
-  console.log(username, email, password);
 
   // validation
   if (!username?.trim() || !email?.trim() || !password?.trim()) {
@@ -123,7 +121,6 @@ const loginUser = asyncHandler(async (req, res) => {
     $or: [{ username }, { email }],
   });
 
-  // console.log(user);
   // confirm user
   if (!user) {
     throw new ApiError(404, "User does not exist.");
@@ -255,4 +252,47 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser,  logoutUser, refreshAccessToken};
+const updatePassword = asyncHandler(async (req, res) => {
+
+  // user is logged in => access to req.user
+  const user = await User.findById(req.user?._id);
+
+  if(!user) {
+    throw new ApiError(400, 'Unauthorized request.');
+  }
+
+  // get old and new password from the user
+  const {oldPassword, newPassword} = req.body;
+
+  if(!oldPassword?.trim() || !newPassword?.trim()) {
+    throw new ApiError(400, 'All fields are required.');
+  }
+
+  // match the old password in the db
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword, user.password);
+
+  if(!isPasswordCorrect) {
+    throw new ApiError(400, 'Password is wrong.');
+  }
+
+  // if password matches => saves new pass to db
+  user.password = newPassword;
+
+  // save the new object
+  await user.save({validateBeforeSave: false});
+
+  return res
+  .status(200)
+  .json( 
+    new ApiResponse(200, {}, "Password changed successfully.") 
+  );
+
+})
+
+export { 
+  registerUser, 
+  loginUser,  
+  logoutUser, 
+  refreshAccessToken, 
+  updatePassword
+};
