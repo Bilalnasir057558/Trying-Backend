@@ -112,7 +112,9 @@ const loginUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   // validation
-  if (!username?.trim() || !email?.trim() || !password?.trim()) {
+  if ([username, email, password].some(field => 
+    !field || (typeof field === "string" && !field.trim())
+  )) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -264,15 +266,17 @@ const updatePassword = asyncHandler(async (req, res) => {
   // get old and new password from the user
   const {oldPassword, newPassword} = req.body;
 
-  if(!oldPassword?.trim() || !newPassword?.trim()) {
+  if([oldPassword, newPassword].some(field => 
+    !field || (typeof field === "string" && !field.trim()))) {
     throw new ApiError(400, 'All fields are required.');
   }
 
+  console.log(oldPassword, newPassword);
   // match the old password in the db
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword, user.password);
 
   if(!isPasswordCorrect) {
-    throw new ApiError(400, 'Password is wrong.');
+    throw new ApiError(400, 'Old password is wrong.');
   }
 
   // if password matches => saves new pass to db
@@ -293,6 +297,12 @@ const updateOtherFields = asyncHandler(async (req, res) => {
   
   // get fields to update from the user
   const {fullName, email} = req.body;
+
+  if([fullName, email].some(field => 
+    !field || (typeof field === "string" && !field.trim())
+  )) {
+    throw new ApiError(400, 'All fields are required.');
+  }
 
   // have access to req.user b/c user is logged in
   const user = await User.findByIdAndUpdate(
@@ -351,7 +361,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
 });
 
 const updateCoverImage = asyncHandler(async (req, res) => {
-  const coverImageLocalPath = req?.file?.path;
+  const coverImageLocalPath = req.file?.path;
 
   if(!coverImageLocalPath) {
     throw new ApiError(400, 'Cover image is missing.');
