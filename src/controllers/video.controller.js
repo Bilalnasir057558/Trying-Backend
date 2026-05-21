@@ -1,8 +1,25 @@
-import mongoose from "mongoose";
+import mongoose, { trusted } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
+
+const formatDuration = (durationInSeconds) => {
+    const seconds = Math.floor(durationInSeconds);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    const paddedMinutes = String(mins).padStart(2, '0');
+    const paddedSeconds = String(secs).padStart(2, '0');
+
+    if(hrs > 0) {
+        paddedHrs = String(hrs).padStart(2, '0');
+        return `${hrs}:${mins}:${secs}`;
+    }
+    return `${mins}:${secs}`;
+}
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
@@ -104,25 +121,42 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const publishVideo = asyncHandler(async (req, res) => {
     const userId = req.user._id;
-    const { videoId } = req.params;
+    const {title, description} = req.body;
+
+    // validate data
+    if([title, description].some(field => 
+        !field || (typeof field === "string" && !field.trim()) 
+    )) {
+        throw new ApiError(400, ';All fields are required');
+    }
+
+    // get form data (video and thumbnail)
+    const videoFileLocalPath = req.files?.videoFile?.[0]?.path;
+    const thumbnailLocalPath = req.files?.thumbnail?.[0]?.paht;
+
+    if(!videoFileLocalPath || !thumbnailLocalPath) {
+        throw new ApiError(400, 'Video and thumbnail are required')
+    }
+
+    // upload on cloudinary
+    const videoFile = await uploadOnCloudinary(videoFileLocalPath);
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+    if(!videoFile || !thumbnail) {
+        throw new ApiError(400, 'Video ad thumbnail are required')
+    }
+
+    // create the video document
+    const video = await Video.create({
+        title,
+        description,
+        videoFile: videoFile.url || "",
+        thumbnail: formatDuration(videoFile.duration),
+        views: 0,
+        isPublished: true,
+        owner: new mongoose.Types.ObjectId(userId)
+    });
     
-    // find video
-    const video = await Video.findById(videoId);
-    if(!video) {
-        throw new ApiError(404, 'Video not found');
-    }
-
-    // check if the user is owner or not
-    const isOwner = video.owner.toString() === userId.toString();
-    if(!isOwner) {
-        throw new ApiError(403, 'Only owner can publish video');
-    }
-
-    // at this point, user is an owner 
-    // update publish status
-    video.isPublished = true;
-    await video.save();
-
     return res
     .status(200)
     .json(
@@ -132,7 +166,6 @@ const publishVideo = asyncHandler(async (req, res) => {
             'Video published successfully'
         )
     );
-
 })
 
 const getVideo = asyncHandler(async (req, res) => {
