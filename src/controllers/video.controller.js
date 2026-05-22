@@ -267,10 +267,41 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 })
 
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const {videoId} = req.params;
+
+     // find video
+    const video = await Video.findById(videoId);
+    if(!video) {
+        throw new ApiError(404, 'Video not found');
+    };
+
+    // check ownership
+    const isOwner = video.owner.toString() === req.user._id.toString();
+    if(!isOwner) {
+        throw new ApiError(403, 'Only owner can toggle publish status');
+    };
+
+    // toggle status
+    video.isPublished = video.isPublished ? false : true;
+    await video.save();
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            video,
+            'Video publish status changed successfully'
+        )
+    );
+})
+
 export {
     getAllVideos,
     publishVideo,
     getVideoById,
     updateVideo,
-    deleteVideo
+    deleteVideo,
+    togglePublishStatus
 }
