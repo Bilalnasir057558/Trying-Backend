@@ -143,7 +143,7 @@ const publishVideo = asyncHandler(async (req, res) => {
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
     if(!videoFile || !thumbnail) {
-        throw new ApiError(400, 'Video ad thumbnail are required')
+        throw new ApiError(400, 'Video and thumbnail are required')
     }
 
     // create the video document
@@ -168,10 +168,109 @@ const publishVideo = asyncHandler(async (req, res) => {
     );
 })
 
-const getVideo = asyncHandler(async (req, res) => {
+const getVideoById = asyncHandler(async (req, res) => {
+    const {videoId} = req.params;
+
+    // find video
+    const video = await Video.findById(videoId);
+    if(!video) {
+        throw new ApiError(404, 'Video not found');
+    };
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            video,
+            'Video fetched successfully',
+        )
+    );
+})
+
+// update video data like title, description or thumbnail
+const updateVideo = asyncHandler(async (req, res) => {
+    const {videoId} = req.params;
+    const {title, description} = req.body;
+
+    // validate data
+    if([title, description].some(field => {
+        !field || (typeof field === 'string' && !field.trim())
+    })) {
+        throw new ApiError(400, 'All fields are required');
+    };
+
+    const thumbnailLocalPath = req.file?.thumbnail?.[0]?.path;
+    if(!thumbnailLocalPath) {
+        throw new ApiError(404, 'Thumbnail is required');
+    };
+
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+    if(!thumbnail) {
+        throw new ApiError(404, 'Thumbnail is required');      
+    };
+
+    // find video
+    const video = await Video.findById(videoId);
+    if(!video) {
+        throw new ApiError(404, 'Video not found');
+    };
+
+    // check ownership
+    const isOwner = video.owner.toString() === req.user._id.toString();
+    if(!isOwner) {
+        throw new ApiError(403, 'Only owner can update the video');
+    };
+
+    video.title = title;
+    video.description = description;
+    video.thumbnail = thumbnail.url;
+    await video.save();
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            video,
+            'Video updated successfully'
+        )
+    );
+});
+
+const deleteVideo = asyncHandler(async (req, res) => {
+    const {videoId} = req.params;
+
+     // find video
+    const video = await Video.findById(videoId);
+    if(!video) {
+        throw new ApiError(404, 'Video not found');
+    };
+
+    // check ownership
+    const isOwner = video.owner.toString() === req.user._id.toString();
+    if(!isOwner) {
+        throw new ApiError(403, 'Only owner can delete the video');
+    };
+
+    await Video.findByIdAndDelete(videoId);
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            'Video deleted successfully.'
+        )
+    );
 
 })
 
 export {
-    getAllVideos
+    getAllVideos,
+    publishVideo,
+    getVideoById,
+    updateVideo,
+    deleteVideo
 }

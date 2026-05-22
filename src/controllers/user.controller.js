@@ -271,7 +271,6 @@ const updatePassword = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'All fields are required.');
   }
 
-  console.log(oldPassword, newPassword);
   // match the old password in the db
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword, user.password);
 
