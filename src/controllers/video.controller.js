@@ -1,4 +1,4 @@
-import mongoose, { trusted } from "mongoose";
+import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -97,7 +97,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     // Using aggregate paginate
     const aggregate = Video.aggregate(pipeline);
-    log(aggregate);
+    console.log(aggregate);
     const result = await Video.aggregatePaginate(aggregate, { page, limit});
     console.log(result);
     
