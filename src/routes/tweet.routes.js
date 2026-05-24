@@ -9,3 +9,5 @@ router.route('/').get(getUserTweets);
 router.route('/add-tweet').post(createTweet);
 router.route('/update-tweet/:tweetId').patch(updateTweet);
 router.route('/delete-tweet/:tweetId').delete(deleteTweet);
+
+export default router

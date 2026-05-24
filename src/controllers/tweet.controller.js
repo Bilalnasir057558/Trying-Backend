@@ -59,11 +59,14 @@ const getUserTweets = asyncHandler(async (req, res) => {
             $addFields: {
                 owner: {
                     $first: '$tweetOwner'
-                }
+                },
+                username: '$tweetOwner.username',
+                avatar: '$tweetOwner.avatar'
             }
         },
         {
             $project: {
+                tweetOwner: 1,
                 username: 1,
                 avatar: 1,
                 content: 1

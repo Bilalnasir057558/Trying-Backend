@@ -97,10 +97,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     // Using aggregate paginate
     const aggregate = Video.aggregate(pipeline);
-    console.log(aggregate);
-    const result = await Video.aggregatePaginate(aggregate, { page, limit});
-    console.log(result);
-    
+    const result = await Video.aggregatePaginate(aggregate, { page, limit});    
 
     return res
     .status(200)
