@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {v2 as cloudinary} from 'cloudinary'
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
@@ -29,6 +30,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     // if userId -> then add owner match
     if(userId) {
+        if(!mongoose.Types.ObjectId.isValid(userId)) {
+            throw new ApiError(400, 'Invalid userId')
+        }
         filter.owner = new mongoose.Types.ObjectId(userId);
     };
 
@@ -53,14 +57,20 @@ const getAllVideos = asyncHandler(async (req, res) => {
     }
     pipeline.push({ $addFields: addField});
 
-    // const project = {
-    //     'owner': {
-    //         'owner.username': 1,
-    //         'owner.avatar': 1
-    //     }
-    // }
+    const project = {
+        title: 1,
+        description: 1,
+        videoFile: 1,
+        thumbnail: 1,
+        duration: 1,
+        views: 1,
+        isPublished: 1,
+        createdAt: 1,
+        'owner.username': 1,
+        'owner.avatar': 1
+    }
 
-    // pipeline.push({ $project: project })
+    pipeline.push({ $project: project })
 
     // create and push the sort object to pipeline
     const sort = {};
@@ -145,7 +155,7 @@ const publishVideo = asyncHandler(async (req, res) => {
         duration: videoFile.duration,
         views: 0,
         isPublished: true,
-        owner: new mongoose.Types.ObjectId(userId)
+        owner: userId
     });
     
     return res
@@ -168,6 +178,8 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(404, 'Video not found');
     };
 
+    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 }})
+
     return res
     .status(200)
     .json(
@@ -185,9 +197,9 @@ const updateVideo = asyncHandler(async (req, res) => {
     const {title, description} = req.body;
 
     // validate data
-    if([title, description].some(field => {
+    if([title, description].some(field => 
         !field || (typeof field === 'string' && !field.trim())
-    })) {
+    )) {
         throw new ApiError(400, 'All fields are required');
     };
     
@@ -274,7 +286,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     };
 
     // toggle status
-    video.isPublished = video.isPublished ? false : true;
+    video.isPublished = !video.isPublished ? true : false;
     await video.save();
 
     return res
