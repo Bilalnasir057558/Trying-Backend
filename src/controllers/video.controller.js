@@ -5,22 +5,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
-const formatDuration = (durationInSeconds) => {
-    const seconds = Math.floor(durationInSeconds);
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    const paddedMinutes = String(mins).padStart(2, '0');
-    const paddedSeconds = String(secs).padStart(2, '0');
-
-    if(hrs > 0) {
-        paddedHrs = String(hrs).padStart(2, '0');
-        return `${hrs}:${mins}:${secs}`;
-    }
-    return `${mins}:${secs}`;
-}
-
 const getAllVideos = asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -76,7 +60,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     pipeline.push({ $sort: sort });
 
     // calculate skip value
-    const skip = (page - 1) * limit;
+    // const skip = (page - 1) * limit;
 
     // // $facet => data fetching and counting simultaneouly
     // pipeline.push({
@@ -119,18 +103,18 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishVideo = asyncHandler(async (req, res) => {
     const userId = req.user._id;
     const {title, description} = req.body;
-
+    
     // validate data
     if([title, description].some(field => 
         !field || (typeof field === "string" && !field.trim()) 
     )) {
-        throw new ApiError(400, ';All fields are required');
+        throw new ApiError(400, 'All fields are required');
     }
 
     // get form data (video and thumbnail)
     const videoFileLocalPath = req.files?.videoFile?.[0]?.path;
-    const thumbnailLocalPath = req.files?.thumbnail?.[0]?.paht;
-
+    const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path;
+    
     if(!videoFileLocalPath || !thumbnailLocalPath) {
         throw new ApiError(400, 'Video and thumbnail are required')
     }
@@ -148,7 +132,8 @@ const publishVideo = asyncHandler(async (req, res) => {
         title,
         description,
         videoFile: videoFile.url || "",
-        thumbnail: formatDuration(videoFile.duration),
+        thumbnail: thumbnail.url || "",
+        duration: videoFile.duration,
         views: 0,
         isPublished: true,
         owner: new mongoose.Types.ObjectId(userId)
