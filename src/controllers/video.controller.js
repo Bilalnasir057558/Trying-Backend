@@ -53,6 +53,15 @@ const getAllVideos = asyncHandler(async (req, res) => {
     }
     pipeline.push({ $addFields: addField});
 
+    // const project = {
+    //     'owner': {
+    //         'owner.username': 1,
+    //         'owner.avatar': 1
+    //     }
+    // }
+
+    // pipeline.push({ $project: project })
+
     // create and push the sort object to pipeline
     const sort = {};
     sort[sortBy] = sortType === 'desc' ? -1 : 1;
@@ -80,7 +89,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     // const totalPages = Math.ceil(totalVideos / limit);
 
     // Using aggregate paginate
-    const aggregate = Video.aggregate(pipeline);
+    const aggregate = Video.aggregate(pipeline);    
     const result = await Video.aggregatePaginate(aggregate, { page, limit});    
 
     return res
@@ -181,11 +190,11 @@ const updateVideo = asyncHandler(async (req, res) => {
     })) {
         throw new ApiError(400, 'All fields are required');
     };
-
-    const thumbnailLocalPath = req.file?.thumbnail?.[0]?.path;
+    
+    const thumbnailLocalPath = req.file?.path;
     if(!thumbnailLocalPath) {
         throw new ApiError(404, 'Thumbnail is required');
-    };
+    };    
 
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
     if(!thumbnail) {
