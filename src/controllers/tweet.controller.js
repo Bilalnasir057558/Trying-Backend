@@ -18,13 +18,12 @@ const createTweet = asyncHandler(async (req, res) => {
         owner: req.user._id
     });
 
-    const owner = await User.findById(req.user._id);
-
     const formattedResponse = {
+        _id: tweet._id,
         content: tweet.content,
         ownerId: tweet.owner,
-        owner: owner.username,
-        ownerAvatar: owner.avatar
+        ownerUsername: req.user.username,
+        ownerAvatar: req.user.avatar
     };
 
     return res
@@ -57,19 +56,18 @@ const getUserTweets = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                owner: {
+                tweetOwner: {
                     $first: '$tweetOwner'
-                },
-                username: '$tweetOwner.username',
-                avatar: '$tweetOwner.avatar'
+                }
             }
         },
         {
             $project: {
-                tweetOwner: 1,
-                username: 1,
-                avatar: 1,
-                content: 1
+                'tweetOwner.username': 1,
+                'tweetOwner.avatar': 1,
+                content: 1,
+                createdAt: 1,
+                updatedAt: 1
             }
         }
     ])
@@ -94,7 +92,17 @@ const updateTweet = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Content is required');
     }
 
-    const tweet = await Tweet.findByIdAndUpdate(
+    const tweet = await Tweet.findById(tweetId);
+    if(!tweet) {
+        throw new ApiError(404, 'Tweet not found');
+    };
+
+    const isOwner = tweet.owner.toString() === userId.toString();
+    if(!isOwner) {
+        throw new ApiError(403, 'Only owner can delete the tweet')
+    };
+
+    const updatedTweet = await Tweet.findByIdAndUpdate(
         tweetId,
         {
             $set: {
@@ -111,7 +119,7 @@ const updateTweet = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(
             200,
-            tweet,
+            updatedTweet,
             'Tweet updated successfully'
         )
     );
