@@ -115,7 +115,7 @@ const getChannels = asyncHandler(async (req, res) => {
      // check if the subscriber exists or not
      const subscriber = await User.findById(subscriberId);
      if(!subscriber) {
-        throw new ApiError(404, 'Subsriber not found');
+        throw new ApiError(404, 'Subscriber not found');
      };
 
      const channels = await Subscription.aggregate([
