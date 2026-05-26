@@ -48,6 +48,58 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 })
 
+const getSubscribers = asyncHandler(async (req, res) => {
+    const {channelId} = req.params;
+
+    // check channel exists or not
+    const channel = await User.findById(channelId);
+    if(!channel){
+        throw new ApiError(404, 'Channel not found');
+    };
+
+    const subscribers = await Subscription.aggregate([
+        {
+            $match: { channel: channelId }
+        },
+        {
+            $lookup: {
+                from: 'users',
+                foreignField: '_id',
+                localField: 'subscriber',
+                as: 'subscriber'
+            }
+        },
+        {
+            $addFields: {
+                subscriber: {
+                    $first: '$subscriber'
+                }
+            }
+        },
+        {
+            $project: {
+                'subscriber.username': 1,
+                'subscriber.avatar': 1,
+                'subscriber.createdAt': 1,
+            }
+        }
+    ]);
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            subscribers,
+            'Subscribers fetched successfully'
+        )
+    );
+})
+
+const getChannels = asyncHandler(async (req, res) => {
+     
+})
+
 export {
     toggleSubscription
 }
