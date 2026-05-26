@@ -3,6 +3,7 @@ import {ApiResponse } from "../utils/ApiResponse.js"
 import {ApiError} from "../utils/ApiError.js";
 import { Video } from "../models/video.model.js";
 import { Comment } from "../models/comment.model.js";
+import mongoose from "mongoose";
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const {page = 1, limit = 10} = req.query;
@@ -18,9 +19,9 @@ const getVideoComments = asyncHandler(async (req, res) => {
     // match object -> find all comment documents of a specific video
     const matchObject = {};
     if(video) {
-        matchObject.video = videoId;
+        matchObject.video = new mongoose.Types.ObjectId(videoId);
     }
-    pipeline.push({ $match: matchObject });
+    pipeline.push({ $match: matchObject });    
 
     // lookup object -> fetch video information
     let videolookup = {};
@@ -44,7 +45,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
     pipeline.push({ $lookup: ownerLookup })
     
     // addFieldObject -> to add video and owner details
-    const addField = {
+    const addFields = {
         video: {
             $first: '$video'
         },
@@ -53,19 +54,20 @@ const getVideoComments = asyncHandler(async (req, res) => {
         }
     };
 
-    pipeline.push({ $addField: addField });
+    pipeline.push({ $addFields: addFields });
 
-    const populate = {
+    const project = {
+        content: 1,
         'video.title': 1,
         'video.description': 1,
         'video.thumbnail': 1,
         'owner.username': 1,
         'owner.avatar': 1
     }
-    pipeline.push({ $populate: populate })
+    pipeline.push({ $project: project });    
 
-    const aggregate = Video.aggregate(pipeline);
-    const result = await Video.aggregatePaginate(aggregate, {limit, page});
+    const aggregate = Comment.aggregate(pipeline);
+    const result = await Comment.aggregatePaginate(aggregate, {limit, page});
 
     return res
     .status(200)
@@ -98,7 +100,7 @@ const addComment = asyncHandler(async (req, res) => {
 
     const comment = await Comment.create({
         content,
-        video,
+        video: videoId,
         owner: req.user._id
     })
 
