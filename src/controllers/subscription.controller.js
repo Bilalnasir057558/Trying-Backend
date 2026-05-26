@@ -3,6 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { Subscription } from "../models/subscription.model.js";
+import mongoose from "mongoose";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
     const {channelId} = req.params;
@@ -13,6 +14,11 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     if(!channel) {
         throw new ApiError(404, 'Channel not found');
     };
+
+    // user cannot subscribe itself
+    if(userId.toString() === channelId.toString()) {
+        throw new ApiError(403, "You cannot subscribe yourself");
+    }
 
     // if already subscribed (document exists) -> delete that subscription document
     // if document not found (not subscribed) -> create subscription
@@ -59,7 +65,7 @@ const getSubscribers = asyncHandler(async (req, res) => {
 
     const subscribers = await Subscription.aggregate([
         {
-            $match: { channel: channelId }
+            $match: { channel: new mongoose.Types.ObjectId(channelId) }
         },
         {
             $lookup: {
@@ -78,12 +84,18 @@ const getSubscribers = asyncHandler(async (req, res) => {
         },
         {
             $project: {
+                channel: 1,
+                'subscriber._id': 1,
                 'subscriber.username': 1,
                 'subscriber.avatar': 1,
-                'subscriber.createdAt': 1,
+                createdAt: 1,
             }
         }
     ]);
+
+    if(!subscribers?.length) {
+        throw new ApiError(404, 'No subscribers found for this channel');
+    }
 
     return res
     .status(200)
@@ -101,5 +113,6 @@ const getChannels = asyncHandler(async (req, res) => {
 })
 
 export {
-    toggleSubscription
+    toggleSubscription,
+    getSubscribers
 }
