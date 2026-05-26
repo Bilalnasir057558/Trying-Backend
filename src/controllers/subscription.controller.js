@@ -110,7 +110,11 @@ const getSubscribers = asyncHandler(async (req, res) => {
 
 const getChannels = asyncHandler(async (req, res) => {
      const userId = req.user._id;
-     const {subscriberId} = req.params; 
+     const {subscriberId} = req.params;
+     
+     if(!subscriberId || (typeof subscriberId === 'string' && !subscriberId.trim())) {
+        throw new ApiError(400, 'SubscriberId is required');
+     }
 
      // check if the subscriber exists or not
      const subscriber = await User.findById(subscriberId);
@@ -145,7 +149,21 @@ const getChannels = asyncHandler(async (req, res) => {
                 'channel.avatar': 1
             }
         }
-     ])
+     ]);
+
+     if(!channels?.length) {
+        throw new ApiError(404, 'No channels subscribed');
+     }
+
+     return res
+     .status(200)
+     .json(
+        new ApiResponse(
+            200,
+            channels,
+            'Channels fetched successfully'
+        )
+     )
 })
 
 export {
