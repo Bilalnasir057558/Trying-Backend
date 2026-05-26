@@ -1,0 +1,53 @@
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { User } from "../models/user.model.js";
+import { Subscription } from "../models/subscription.model.js";
+
+const toggleSubscription = asyncHandler(async (req, res) => {
+    const {channelId} = req.params;
+    const userId = req.user._id;
+
+    // check whether the channel exists
+    const channel = await User.findById(channelId);
+    if(!channel) {
+        throw new ApiError(404, 'Channel not found');
+    };
+
+    // if already subscribed (document exists) -> delete that subscription document
+    // if document not found (not subscribed) -> create subscription
+    const isSubscriptionExists = await Subscription.findOne({
+        $and: [
+            { subscriber: userId },
+            { channel: channelId }
+        ]
+    });
+
+    let subscription;
+    if(!isSubscriptionExists) {
+        subscription = await Subscription.create({
+            subscriber: userId,
+            channel: channelId
+        })
+    } else {
+        await Subscription.deleteOne({
+            subscriber: userId,
+            channel: channelId
+        })
+    };
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            subscription || {},
+            subscription ? 'Subscription added successfully' : 'Subscription removed successfully'
+        )
+    );
+
+})
+
+export {
+    toggleSubscription
+}
