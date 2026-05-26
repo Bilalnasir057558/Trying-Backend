@@ -55,6 +55,15 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
     pipeline.push({ $addField: addField });
 
+    const populate = {
+        'video.title': 1,
+        'video.description': 1,
+        'video.thumbnail': 1,
+        'owner.username': 1,
+        'owner.avatar': 1
+    }
+    pipeline.push({ $populate: populate })
+
     const aggregate = Video.aggregate(pipeline);
     const result = await Video.aggregatePaginate(aggregate, {limit, page});
 
