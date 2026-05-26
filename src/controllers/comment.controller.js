@@ -6,7 +6,8 @@ import { Comment } from "../models/comment.model.js";
 import mongoose from "mongoose";
 
 const getVideoComments = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
   const { videoId } = req.params;
 
   const video = await Video.findById(videoId);
@@ -18,22 +19,8 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
   // match object -> find all comment documents of a specific video
   const matchObject = {};
-
   matchObject.video = new mongoose.Types.ObjectId(videoId);
-
   pipeline.push({ $match: matchObject });
-
-  // lookup object -> fetch video information
-  let videolookup = {};
-
-  videolookup = {
-    from: "videos",
-    foreignField: "_id",
-    localField: "video",
-    as: "video",
-  };
-
-  pipeline.push({ $lookup: videolookup });
 
   // lookup object -> to fetch owner details of each comment
   let ownerLookup = {
@@ -46,9 +33,6 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
   // addFieldObject -> to add video and owner details
   const addFields = {
-    video: {
-      $first: "$video",
-    },
     owner: {
       $first: "$owner",
     },
@@ -58,9 +42,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
   const project = {
     content: 1,
-    "video.title": 1,
-    "video.description": 1,
-    "video.thumbnail": 1,
+    createdAt: 1,
     "owner.username": 1,
     "owner.avatar": 1,
   };
@@ -110,6 +92,10 @@ const addComment = asyncHandler(async (req, res) => {
 const updateComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
   const { content } = req.body;
+
+  if(!content || (typeof content === "string" && !content.trim())) {
+    throw new ApiError(400, 'Content is required');
+  }
 
   const comment = await Comment.findById(commentId);
   if (!comment) {
