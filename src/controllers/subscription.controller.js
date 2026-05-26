@@ -23,10 +23,8 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     // if already subscribed (document exists) -> delete that subscription document
     // if document not found (not subscribed) -> create subscription
     const isSubscriptionExists = await Subscription.findOne({
-        $and: [
-            { subscriber: userId },
-            { channel: channelId }
-        ]
+        subscriber: userId,
+        channel: channelId
     });
 
     let subscription;
@@ -57,6 +55,10 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 const getSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params;
 
+    if(!mongoose.Types.ObjectId.isValid(channelId)) {
+        throw new ApiError(400, 'Invalid channelId');
+    }
+ 
     // check channel exists or not
     const channel = await User.findById(channelId);
     if(!channel){
@@ -84,7 +86,6 @@ const getSubscribers = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                channel: 1,
                 'subscriber._id': 1,
                 'subscriber.username': 1,
                 'subscriber.avatar': 1,
@@ -92,10 +93,6 @@ const getSubscribers = asyncHandler(async (req, res) => {
             }
         }
     ]);
-
-    if(!subscribers?.length) {
-        throw new ApiError(404, 'No subscribers found for this channel');
-    }
 
     return res
     .status(200)
@@ -109,11 +106,10 @@ const getSubscribers = asyncHandler(async (req, res) => {
 })
 
 const getChannels = asyncHandler(async (req, res) => {
-     const userId = req.user._id;
      const {subscriberId} = req.params;
      
-     if(!subscriberId || (typeof subscriberId === 'string' && !subscriberId.trim())) {
-        throw new ApiError(400, 'SubscriberId is required');
+     if(!mongoose.Types.ObjectId.isValid(subscriberId)) {
+        throw new ApiError(400, 'Invalid subscriberId');
      }
 
      // check if the subscriber exists or not
@@ -143,17 +139,13 @@ const getChannels = asyncHandler(async (req, res) => {
         }, 
         {
             $project: {
-                subscriber: 1,
                 'channel._id': 1,
                 'channel.username': 1,
-                'channel.avatar': 1
+                'channel.avatar': 1,
+                createdAt: 1
             }
         }
      ]);
-
-     if(!channels?.length) {
-        throw new ApiError(404, 'No channels subscribed');
-     }
 
      return res
      .status(200)
