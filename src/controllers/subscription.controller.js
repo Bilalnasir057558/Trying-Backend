@@ -109,10 +109,47 @@ const getSubscribers = asyncHandler(async (req, res) => {
 })
 
 const getChannels = asyncHandler(async (req, res) => {
-     
+     const userId = req.user._id;
+     const {subscriberId} = req.params; 
+
+     // check if the subscriber exists or not
+     const subscriber = await User.findById(subscriberId);
+     if(!subscriber) {
+        throw new ApiError(404, 'Subsriber not found');
+     };
+
+     const channels = await Subscription.aggregate([
+        {
+            $match: { subscriber: new mongoose.Types.ObjectId(subscriberId) }
+        }, 
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'channel',
+                foreignField: '_id',
+                as: 'channel'
+            }
+        }, 
+        {
+            $addFields: {
+                channel: {
+                    $first: '$channel'
+                }
+            }
+        }, 
+        {
+            $project: {
+                subscriber: 1,
+                'channel._id': 1,
+                'channel.username': 1,
+                'channel.avatar': 1
+            }
+        }
+     ])
 })
 
 export {
     toggleSubscription,
-    getSubscribers
+    getSubscribers,
+    getChannels
 }
