@@ -79,9 +79,11 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         )
     );
 
-    
+
 
 })
 export {
-    createPlaylist
+    createPlaylist,
+    getUserPlaylists,
+    getPlaylistById
 }
