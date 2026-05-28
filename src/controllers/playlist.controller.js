@@ -3,6 +3,7 @@ import {ApiResponse} from "../utils/ApiResponse.js";
 import {ApiError} from "../utils/ApiError.js";
 import { Playlist } from "../models/playlist.model.js";
 import mongoose from "mongoose";
+import { Video } from "../models/video.model.js";
 
 const createPlaylist = asyncHandler(async (req, res) => {
     const { name, description } = req.body;
@@ -82,8 +83,51 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
 
 })
+
+const addVideoToPlaylist = asyncHandler(async (req, res) => {
+    const { playlistId, videoId } = req.params;
+
+    // check whether playlist exists or not
+    const playlist = await Playlist.findById(playlistId);
+    if(!playlist) {
+        throw new ApiError(404, "Playlist not found");
+    };
+
+    // validate videoId
+    if(!mongoose.Types.ObjectId.isValid(videoId)) {
+        throw new ApiError(400, 'Invalid videoId');
+    };
+
+    const video = await Video.findById(videoId);
+    if(!video) {
+        throw new ApiError(404, 'Video not found');
+    };
+
+    // check if the user is the owner
+    const isOwner = playlist.owner.toString() === req.user._id.toString();
+    if(!isOwner) {
+        throw new ApiError(403, 'Only playlist owner can add videos');
+    };
+
+    // add video
+    playlist.videos.push(video);
+    await playlist.save();
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            playlist,
+            'Video added successfully'
+        )
+    );
+}) 
+
+
 export {
     createPlaylist,
     getUserPlaylists,
-    getPlaylistById
+    getPlaylistById,
+    addVideoToPlaylist
 }
