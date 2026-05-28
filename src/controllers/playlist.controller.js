@@ -90,7 +90,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
   }
 
   // $addToSet only updates if the value already exists
-  await Playlist.findByIdAndUpdate(
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
     playlistId,
     { $addToSet: { videos: videoId } },
     { returnDocument: "after" }
@@ -99,7 +99,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, playlist, "Video added to playlist successfully")
+      new ApiResponse(200, updatedPlaylist, "Video added to playlist successfully")
     );
 });
 
@@ -129,7 +129,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   }
 
   // $pull removes all the matching elements from an array at the DB level
-  await Playlist.findByIdAndUpdate(
+  const updatedPlaylist = await Playlist.findByIdAndUpdate(
     playlistId,
     { $pull: { videos: videoId } },
     { returnDocument: "after" }
@@ -138,7 +138,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, playlist, "Video removed from playlist successfully")
+      new ApiResponse(200, updatedPlaylist, "Video removed from playlist successfully")
     );
 });
 
