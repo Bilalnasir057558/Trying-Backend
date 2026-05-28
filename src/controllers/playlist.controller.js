@@ -89,9 +89,11 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only playlist owner can add videos");
   }
 
+  // $addToSet only updates if the value already exists
   await Playlist.findByIdAndUpdate(
     playlistId,
-    { $addToSet: { videos: videoId } }
+    { $addToSet: { videos: videoId } },
+    { returnDocument: "after" }
   );
 
   return res
@@ -123,11 +125,15 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   // check if the user is the owner
   const isOwner = playlist.owner.toString() === req.user._id.toString();
   if (!isOwner) {
-    throw new ApiError(403, "Only playlist owner can add videos");
+    throw new ApiError(403, "Only playlist owner can remove videos");
   }
 
-  playlist.videos = playlist.videos.filter((id) => id.toString() !== videoId.toString());
-  await playlist.save();
+  // $pull removes all the matching elements from an array at the DB level
+  await Playlist.findByIdAndUpdate(
+    playlistId,
+    { $pull: { videos: videoId } },
+    { returnDocument: "after" }
+  );
 
   return res
     .status(200)
@@ -153,6 +159,11 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Playlist not found");
   }
 
+  const isOwner = playlist.owner.toString() === req.user._id.toString();
+  if(!isOwner) {
+    throw new ApiError(403, "Only owner can update the playlist")
+  };
+
   playlist.name = name;
   playlist.description = description;
   await playlist.save();
@@ -172,6 +183,11 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     const playlist = await Playlist.findById(playlistId);
     if (!playlist) {
         throw new ApiError(404, "Playlist not found");
+    };
+
+    const isOwner = playlist.owner.toString() === req.user._id.toString();
+    if(!isOwner) {
+      throw new ApiError(403, "Only owner can delete the playlist")
     };
 
     await Playlist.findByIdAndDelete(playlistId);
