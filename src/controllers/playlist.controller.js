@@ -57,7 +57,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
   const playlist = await Playlist.findById(playlistId);
   if (!playlist) {
-    throw new ApiError(500, "Error fetching playlist");
+    throw new ApiError(404, "Playlist not found");
   }
 
   return res
@@ -91,7 +91,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
   }
 
   // add video
-  playlist.videos.push(video);
+  playlist.videos.push(videoId);
   await playlist.save();
 
   return res
@@ -126,7 +126,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only playlist owner can add videos");
   }
 
-  playlist.videos = playlist.videos.filter((video) => video._id !== videoId);
+  playlist.videos = playlist.videos.filter((id) => id.toString() !== videoId.toString());
   await playlist.save();
 
   return res
