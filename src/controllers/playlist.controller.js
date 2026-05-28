@@ -19,13 +19,8 @@ const createPlaylist = asyncHandler(async (req, res) => {
   const playlist = await Playlist.create({
     name,
     description,
-    owner: req.user._id,
-    videos: [],
+    owner: req.user._id
   });
-
-  if (!playlist) {
-    throw new ApiError(500, "Error creating playlist");
-  }
 
   return res
     .status(200)
@@ -68,6 +63,10 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
 
+  if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+    throw new ApiError(400, "Invalid playlistId");
+  }
+
   // check whether playlist exists or not
   const playlist = await Playlist.findById(playlistId);
   if (!playlist) {
@@ -90,9 +89,10 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only playlist owner can add videos");
   }
 
-  // add video
-  playlist.videos.push(videoId);
-  await playlist.save();
+  await Playlist.findByIdAndUpdate(
+    playlistId,
+    { $addToSet: { videos: videoId } }
+  );
 
   return res
     .status(200)
