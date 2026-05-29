@@ -134,9 +134,12 @@ const getLikedVideos = asyncHandler (async (req, res) => {
     const videos = await Like.aggregate([
         {
             $match: {
-                likedBy: userId
+                likedBy: userId,
+                video: {
+                    $exists: true
+                }
             }
-        }, 
+        },
         {
             $lookup: {
                 from: 'videos',
@@ -145,16 +148,15 @@ const getLikedVideos = asyncHandler (async (req, res) => {
                 as: 'videos'
             }
         },
-        {
-            $addFields: {
-                videos: {
-                    $first: '$videos'
-                }
-            }
-        }
+        // {
+        //     $addFields: {
+        //         videos: {
+        //             $first: '$videos'
+        //         }
+        //     }
+        // }
     ]);
 
-    console.log(videos);
     return res
     .status(200)
     .json(
@@ -169,5 +171,6 @@ const getLikedVideos = asyncHandler (async (req, res) => {
 export {
     toggleVideoLike,
     toggleCommentLike,
-    toggleTweetLike
+    toggleTweetLike,
+    getLikedVideos
 }
