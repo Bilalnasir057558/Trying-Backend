@@ -4,6 +4,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Video } from "../models/video.model.js";
 import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
+import { Tweet } from "../models/tweet.model.js";
+import mongoose from "mongoose";
 
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
@@ -77,14 +79,95 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(
             200,
-            isLiked ? likedComment : {},
+            isLiked || {},
             isLiked ? 'Like added to comment successfully' : 'Like removed from the comment successfully'
         )
     );
 
 })
 
+const toggleTweetLike = asyncHandler(async (req, res) => {
+    const { tweetId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(tweetId)) {
+        throw new ApiError(400, 'Invalid tweetId');
+    };
+
+    const tweet = await Tweet.findById(tweetId);
+    if(!tweet) {
+        throw new ApiError(404, 'Tweet not found');
+    };
+
+    // check if already liked
+    const isLiked = await Like.findOne({
+        tweet: tweetId,
+        likedBy: req.user._id
+    });
+
+    let likedTweet;
+    if(!isLiked) {
+        likedTweet = await Like.create({
+            tweet: tweetId,
+            likedBy: req.user._id
+        });
+    } else {
+        await Like.deleteOne({
+            tweet: tweetId,
+            likedBy: req.user._id
+        });
+    };
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            likedTweet || {},
+            likedTweet ? 'Like added to tweet successfully' : 'Like removed from the video successfully'
+        )
+    ); 
+});
+
+const getLikedVideos = asyncHandler (async (req, res) => {
+    const userId = req.user._id;
+
+    const videos = await Like.aggregate([
+        {
+            $match: {
+                likedBy: userId
+            }
+        }, 
+        {
+            $lookup: {
+                from: 'videos',
+                localField: 'video',
+                foreignField: '_id',
+                as: 'videos'
+            }
+        },
+        {
+            $addFields: {
+                videos: {
+                    $first: '$videos'
+                }
+            }
+        }
+    ]);
+
+    console.log(videos);
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            videos,
+            'Videos fetched successfully'
+        )
+    );
+})
+
 export {
     toggleVideoLike,
-    toggleCommentLike
+    toggleCommentLike,
+    toggleTweetLike
 }
