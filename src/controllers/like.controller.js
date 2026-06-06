@@ -79,8 +79,8 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(
             200,
-            isLiked || {},
-            isLiked ? 'Like added to comment successfully' : 'Like removed from the comment successfully'
+            likedComment || {},
+            likedComment ? 'Like added to comment successfully' : 'Like removed from the comment successfully'
         )
     );
 
@@ -123,7 +123,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         new ApiResponse(
             200,
             likedTweet || {},
-            likedTweet ? 'Like added to tweet successfully' : 'Like removed from the video successfully'
+            likedTweet ? 'Like added to tweet successfully' : 'Like removed from the tweet successfully'
         )
     ); 
 });
@@ -134,9 +134,10 @@ const getLikedVideos = asyncHandler (async (req, res) => {
     const videos = await Like.aggregate([
         {
             $match: {
-                likedBy: userId,
+                likedBy: new mongoose.Types.ObjectId(userId),
                 video: {
-                    $exists: true
+                    $exists: true,  // check video field exists
+                    $ne: null // video field can't be null
                 }
             }
         },
@@ -148,13 +149,21 @@ const getLikedVideos = asyncHandler (async (req, res) => {
                 as: 'videos'
             }
         },
-        // {
-        //     $addFields: {
-        //         videos: {
-        //             $first: '$videos'
-        //         }
-        //     }
-        // }
+        {
+            $unwind: '$videos' // deconstructs array and give document for each element
+        },
+        {
+            $project: {
+                _id: 1,
+                likedBy: 1,
+                'videos._id': 1,
+                'videos.thumbnail': 1,
+                'videos.title': 1,
+                'videos.duration': 1,
+                'videos.createdAt': 1,
+                'videos.updatedAt': 1
+            }
+        }
     ]);
 
     return res
